@@ -173,17 +173,14 @@ def process_event(helper, *args, **kwargs):
         events = remove_rawdatafields(list(events))
         helper.log_info("Session= {} Time_taken_to_remove_rawdatafields={}".format(session_identifier,(datetime.datetime.utcnow() - remove_rawdatafields_start_time_utc).seconds))
 
-    event_count = len(list(events))
-    helper.log_info("Session= {} Total_Events_received = {}".format(session_identifier,event_count))
-
     helper.log_info("Session= {} Splunk Input Params received ingest_url={} tenant_id={} table_name={} table_mapping_name={} ingestion_mode={} remove_extra_fields={}".format(session_identifier,cluster_endpoint,tenant_id,table,database,mapping_name,durable_mode,remove_extra_fields))
     helper.log_info("Session= {} Alert action send_to_adx started...".format(session_identifier))
 
     adx_client = create_ADX_client(cluster_endpoint, app_id, app_secret, tenant_id, database, table, mapping_name, durable_mode, session_identifier)
 
-    adx_client.send(helper, json.loads(json.dumps(list(events))))
+    adx_client.send(helper, list(events))
 
-    helper.log_info("Session= {} Total_Events_received = {} Total_Events_Successfully_sent = {}".format(session_identifier,event_count,adx_client.successfully_sent_events_number ))
+    helper.log_info("Session= {} Total_Events_Successfully_sent = {}".format(session_identifier,adx_client.successfully_sent_events_number ))
     helper.log_info("Session= {} Script_Start_Time = {} Script_End_Time = {} Total_Time_Taken_Minutes = {} ".format(session_identifier, script_start_time_utc,datetime.datetime.utcnow(), ((datetime.datetime.utcnow() - script_start_time_utc ).seconds)/60  ))
 
     return 0
