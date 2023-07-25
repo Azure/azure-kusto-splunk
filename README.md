@@ -1,9 +1,10 @@
 # Ingesting Data from Splunk to Azure Data Explorer
 
-In this repository there are following ways to ingest data from Splunk to Azure Data Explorer.
-1. Using Splunk Addon to ingest data from Splunk index to Azure Data Explorer
-2. Forward data or logs from any system to Azure Data Explorer by installing the splunk universal forwarder
-3. Using a Spark Job to retrieve historical data from Splunk index and ingest to Azure Data Explorer
+The project provides modules to integrate Azure Data Explorer (on Azure and Microsoft Fabric) with Splunk
+
+a) Export data continuously from Splunk index to ADX using Azure Data Explorer Splunk Addon
+b) Export data to ADX as a target using Splunk universal forwarder
+c) A sample Spark job to extract existing data from Splunk indexes to ADX for historical analysis
 
 ## Using Splunk Addon to ingest data from Splunk index to Azure Data Explorer
 Prerequisites
@@ -11,10 +12,9 @@ Before getting started, ensure you have the following prerequisites in place:
 
 1. A Splunk instance with the required privileges to install and configure add-ons.
 2. Access to an Azure Data Explorer cluster.
-3. A Splunk Addon Builder installed and configured.
 
 ### Step 1: Install the Splunk Addon for Azure Data Explorer
-1. Download the Splunk Addon for Azure Data Explorer from the Splunkbase website or obtain it from the Splunk Addon Builder.
+1. Download the Splunk Addon for Azure Data Explorer from the Splunkbase website.
 2. Log in to your Splunk instance as an administrator.
 3. Navigate to "Apps" and click on "Manage Apps."
 4. Click on "Install app from file" and select the downloaded Splunk Addon for Azure Data Explorer file.
@@ -29,11 +29,11 @@ Before getting started, ensure you have the following prerequisites in place:
 
 ### Step 3: Configure Splunk Addon for Azure Data Explorer
 1. In Splunk dashboard, Enter your search query in the Search bar based on which alerts will be generated and this alert data will be ingested to Azure Data Explorer.
-2. Click on Save As and select Alert.
-3. Provide a name for the alert and provide the interval at which the alert should be triggered.
-4. Select the alert action as "Send to Azure Data Explorer."
-5. Configure the Azure Data Explorer connection details such as application client Id, application client secret, cluster name, database name, table name.
-6. Click on Save to save the alert configuration.
+3. Click on Save As and select Alert.
+4. Provide a name for the alert and provide the interval at which the alert should be triggered.
+5. Select the alert action as "Send to Azure Data Explorer."
+6. Configure the Azure Data Explorer connection details such as application client Id, application client secret, cluster name, database name, table name.
+7. Click on Save to save the alert configuration.
 
 ### Step 4: Verify the data in Azure Data Explorer
 1. Start monitoring the Azure Data Explorer logs to ensure proper data ingestion.
