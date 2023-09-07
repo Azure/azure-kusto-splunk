@@ -8,6 +8,7 @@ import csv
 import threading
 import tempfile
 import shutil
+import psutil
 from azure.kusto.data import KustoConnectionStringBuilder
 from azure.kusto.data.data_format import DataFormat
 from azure.kusto.ingest import (
@@ -22,18 +23,29 @@ MAX_WAIT_TIME_SECONDS = int(os.environ.get('MAX_WAIT_TIME_SECONDS', '5'))
 MAX_RETRIES = int(os.environ.get('MAX_RETRIES', '3'))
 MAX_SIZE = 5 * 1024 * 1024 #5MB
 DELETE_TEMP_FILE_DAYS_THRESHOLD = 1
+TEMP_DIR_PREFIX = "ADX_Ingest"
+
 
 def is_file_not_being_modified(file_path):
     """
-    Returns True if the file is currently being not modified, False otherwise.
-    """
-    file_stat = os.stat(file_path)
-    current_size = file_stat.st_size
-    time.sleep(1)  # Wait for 1 second
-    new_size = os.stat(file_path).st_size
-    if current_size != new_size:
-        logging.info("the file is currently being modified")
-    return current_size == new_size
+        Returns True if the file is currently being not modified, False otherwise.
+        """
+    for process in psutil.process_iter(attrs=['pid', 'name']):
+        try:
+            process_info = process.info()
+            pid = process_info['pid']
+            process_name = process_info['name']
+            open_files = psutil.Process(pid).open_files()
+
+            for file_info in open_files:
+                if file_info.path == file_path and 'w' in file_info.mode:
+                    # The file is open for writing by a process
+                    return False
+
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+
+    return True  # No process is currently modifying the file
     
 
 def ingest_data(conn_string_builder: KustoConnectionStringBuilder, database: str, table: str, table_mapping: str) -> bool:
@@ -42,12 +54,13 @@ def ingest_data(conn_string_builder: KustoConnectionStringBuilder, database: str
          # Set the folder path to read the JSON files
         time.sleep(60)
         folder_path = os.getcwd()
-        buffer_folder_name = os.path.join(folder_path, "ADX_Ingest")
+        buffer_folder_name = os.path.join(folder_path, TEMP_DIR_PREFIX)
         logging.info(f'ingesting message from {buffer_folder_name}')
 
         #files = os.listdir(buffer_folder_name)
 
         ingestion_client = QueuedIngestClient(conn_string_builder)
+
         ingest_props = IngestionProperties(database=database, table=table, flush_immediately=False, data_format=DataFormat.CSV, ingestion_mapping_reference=table_mapping)
 
         if os.path.isdir(buffer_folder_name):
@@ -73,10 +86,11 @@ def ingest_data(conn_string_builder: KustoConnectionStringBuilder, database: str
         else:
             logging.error(f"The folder {buffer_folder_name} doesnt exist")
 
+
 def move_files_to_temp_dir(source_file_path):
-        if not os.path.isdir(os.path.join(tempfile.gettempdir(), "ADX_Ingest")):
+        if not os.path.isdir(os.path.join(tempfile.gettempdir(), TEMP_DIR_PREFIX)):
             temp_dir_created = tempfile.mkdtemp()
-            temp_dir = os.path.join(os.path.dirname(temp_dir_created), "ADX_Ingest")
+            temp_dir = os.path.join(os.path.dirname(temp_dir_created), TEMP_DIR_PREFIX)
             os.rename(temp_dir_created, temp_dir)
         else:
             temp_dir = os.path.join(tempfile.gettempdir(), "ADX_Ingest")
@@ -96,6 +110,7 @@ def get_new_file_name(file_name):
             new_file_name = f"{base_name}_{counter}{ext}"
         return new_file_name            
 
+
 def get_files_not_modified(directory):
         current_time = time.time()
         files = []
@@ -110,25 +125,6 @@ def get_files_not_modified(directory):
                     files.append(file_path)
         return files
 
-def is_file_not_being_modified(file_path):
-        """
-        Returns True if the file is currently being not modified, False otherwise.
-        """
-        if os.path.getsize(file_path) > MAX_SIZE:
-            return True
-        else : 
-            file_stat = os.stat(file_path)
-            current_size = file_stat.st_size
-            time.sleep(10)  # Wait for 5 second
-            new_size = os.stat(file_path).st_size
-            # Get the file's modification time
-            modification_time = os.path.getmtime(file_path)
-            # Compare the modification time with the current time
-            current_time = time.time()
-            if modification_time < current_time and current_size == new_size:
-                return True
-            else:
-                return False
 
 def listen_for_messages(host: str, port: int):
     """Listen for incoming messages on the specified host and port."""
@@ -156,6 +152,7 @@ def listen_for_messages(host: str, port: int):
                 if len(data.decode().splitlines()) > 0 :
                     write_to_file(data=data.decode())
 
+
 def create_file(file_path):
     try:
         file = open(file_path, "x")
@@ -174,13 +171,14 @@ def remove_empty_lines(text):
     result = os.linesep.join(non_empty_lines)
     return result
 
+
 def write_to_file(data: str):
         data = remove_empty_lines(data)
         try:
             timestr = time.strftime("%Y%m%d-%H%M%S")
             buffer_file_name = 'ADXIngest-' + timestr + '.csv'
             parentdir = os.getcwd()
-            buffer_folder_name = os.path.join(parentdir, "ADX_Ingest")
+            buffer_folder_name = os.path.join(parentdir, TEMP_DIR_PREFIX)
             logging.info(f'Folder Path for writing Buffer Data is. {buffer_folder_name} and {buffer_file_name}')
 
             if not os.path.isdir(buffer_folder_name):
@@ -195,6 +193,7 @@ def write_to_file(data: str):
 
         except Exception as err:
             logging.error('Error while writing data to buffer in bin. {}'.format(err))
+
 
 def delete_files_older_than(directory, days):
     current_time = time.time()
@@ -213,9 +212,10 @@ def delete_files_older_than(directory, days):
                 os.remove(file_path)
                 logging.info(f"Deleted file: {file_path}")
 
+
 def delete_older_temp_files():
     while True:
-          delete_files_older_than(os.path.join(tempfile.gettempdir(), "ADX_Ingest"), DELETE_TEMP_FILE_DAYS_THRESHOLD)
+          delete_files_older_than(os.path.join(tempfile.gettempdir(), TEMP_DIR_PREFIX), DELETE_TEMP_FILE_DAYS_THRESHOLD)
           time.sleep(60*60) # Sleep for 1 hour before checking again                   
 
 
@@ -236,6 +236,7 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s', level=logging.INFO)
     kcsb = KustoConnectionStringBuilder.with_aad_application_key_authentication(cluster, client_id, client_secret,
                                                                                 authority)
+    kcsb._set_connector_details("Kusto.Splunk.Forwarder", "1.0.0")
     
     timer_thread = threading.Thread(target=ingest_data, args=(kcsb,database, table_name, table_mapping_name))
     timer_thread.start()
@@ -244,4 +245,4 @@ if __name__ == '__main__':
     temp_file_delete_thread.start()
 
     # Listen for incoming messages
-    listen_for_messages('0.0.0.0', 9997)
+    listen_for_messages('0.0.0.0', config['port_number'])
