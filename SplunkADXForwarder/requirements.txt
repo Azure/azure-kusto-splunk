@@ -1,0 +1,5 @@
+azure-kusto-data == 4.1.4
+azure-kusto-ingest == 4.1.4
+PyYAML == 6.0
+pandas == 2.0.1
+psutil == 5.9.4
