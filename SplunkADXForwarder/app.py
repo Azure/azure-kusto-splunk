@@ -18,7 +18,6 @@ from azure.kusto.ingest import (
 )
 
 # Constants
-MAX_BATCH_SIZE = int(os.environ.get('MAX_BATCH_SIZE', '1000'))
 MAX_WAIT_TIME_SECONDS = int(os.environ.get('MAX_WAIT_TIME_SECONDS', '5'))
 MAX_RETRIES = int(os.environ.get('MAX_RETRIES', '3'))
 MAX_SIZE = 5 * 1024 * 1024 #5MB
@@ -231,6 +230,7 @@ if __name__ == '__main__':
     authority = config['authority']
     table_name = config['table_name']
     table_mapping_name = config['table_mapping_name']
+    max_batch_size = config['max_batch_size']
 
     # Configure logging
     logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s', level=logging.INFO)

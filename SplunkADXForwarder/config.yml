@@ -7,3 +7,4 @@ table_name : table_mapping_name
 table_mapping_name :
 data_format : csv
 port_number : 9997
+max_batch_size : 1000
