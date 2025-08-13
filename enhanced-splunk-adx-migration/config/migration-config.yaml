@@ -1,0 +1,175 @@
+# Enhanced Splunk to ADX Migration Configuration
+# Optimized for 250TB data transfer using Azure Databricks
+
+# Migration Settings
+migration:
+  # Splunk indexes to migrate (add your actual index names here)
+  indexes:
+    - "main"
+    - "security"
+    - "application"
+    - "network"
+  
+  # Time range for migration (adjust according to your data range)
+  start_date: "2020-01-01"  # Format: YYYY-MM-DD
+  end_date: "2025-01-01"    # Format: YYYY-MM-DD
+  
+  # Partition size in days (smaller = more parallel processing, but more overhead)
+  partition_size_days: 1  # Recommended: 1-7 days for 250TB
+  
+  # Maximum number of partitions to process in parallel
+  # Adjust based on your Databricks cluster capacity
+  max_parallel_partitions: 10  # Recommended: 5-20 for large clusters
+
+# Splunk Configuration
+splunk:
+  host: "your-splunk-host.com"
+  port: 8089
+  username: "admin"
+  password: "your-password"
+  timeout: 120
+  
+  # Base search query (customize as needed)
+  base_query: "search"
+  
+  # Additional filters to apply to all searches
+  additional_filters: []
+    # Example filters:
+    # - "sourcetype=access_combined"
+    # - "source=/var/log/apache/*"
+  
+  # Maximum results per partition (Splunk limit is usually 50,000-100,000)
+  max_results_per_partition: 50000
+  
+  # Search timeout in seconds
+  search_timeout: 600  # 10 minutes
+
+# Azure Data Explorer Configuration
+adx:
+  # ADX cluster URL (replace with your actual cluster)
+  cluster: "https://your-cluster.kusto.windows.net"
+  ingest_url: "https://ingest-your-cluster.kusto.windows.net"
+  
+  # Database and table information
+  database: "SplunkData"
+  table: "Events"
+  
+  # Azure AD Authentication
+  client_id: "your-client-id"
+  client_secret: "your-client-secret"
+  authority: "your-tenant-id"
+  
+  # Optional: Table mapping for schema transformation
+  table_mapping: "Events_mapping"
+
+# Spark Configuration for Azure Databricks
+spark:
+  # Dynamic allocation settings
+  min_executors: 2
+  max_executors: 50  # Increase for larger clusters (100+ for very large transfers)
+  
+  # Executor configuration
+  executor_cores: 4
+  executor_memory: "8g"
+  driver_memory: "4g"
+  
+  # Partitioning
+  partition_count: 20  # Number of Spark partitions per batch
+  
+  # Kusto Spark connector JAR (will be auto-installed on Databricks)
+  kusto_jar_path: "/databricks/kusto-spark_2.12-3.1.15-jar-with-dependencies.jar"
+
+# Retry Configuration
+retry:
+  max_attempts: 5
+  base_delay: 2  # seconds
+  exponential_backoff: true
+  max_delay: 300  # 5 minutes
+
+# Checkpoint Configuration
+checkpoint:
+  directory: "/dbfs/migration-checkpoints"  # Databricks file system path
+  save_frequency: 100  # Save checkpoint every N partitions
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  log_to_file: true
+  log_directory: "/dbfs/migration-logs"
+
+# Data Transformation Settings
+transformations:
+  enable_schema_inference: true
+  flatten_nested_json: true
+  add_ingestion_metadata: true
+  
+  # Custom field mappings (optional)
+  field_mappings: {}
+    # Example:
+    # timestamp: "_time"
+    # message: "_raw"
+
+# Performance Tuning
+performance:
+  # Batch processing settings
+  records_per_batch: 10000
+  
+  # Memory optimization
+  enable_arrow: true
+  cache_dataframes: true
+  
+  # Network optimization
+  compression: "gzip"
+  connection_pool_size: 10
+  
+  # Garbage collection tuning
+  gc_fraction: 0.1
+
+# Monitoring and Alerting
+monitoring:
+  enable_progress_reporting: true
+  progress_report_interval: 300  # seconds (5 minutes)
+  
+  # Optional: Webhook for progress notifications
+  webhook_url: ""
+  
+  # Metrics collection
+  collect_metrics: true
+  metrics_interval: 60  # seconds
+
+# Data Validation
+validation:
+  enable_row_count_validation: true
+  enable_sample_data_validation: false
+  sample_validation_percentage: 0.1  # 0.1% of data
+  
+  # Data quality checks
+  check_for_duplicates: false
+  validate_json_format: true
+
+# Error Handling
+error_handling:
+  fail_on_first_error: false
+  max_failed_partitions_percentage: 10  # Fail migration if >10% partitions fail
+  
+  # Error recovery
+  auto_retry_failed_partitions: true
+  create_error_report: true
+
+# Resource Estimation (for planning purposes)
+resource_estimation:
+  estimated_data_size_tb: 250
+  estimated_daily_data_gb: 500
+  target_migration_days: 21
+  
+  # Recommended Databricks cluster configuration
+  recommended_cluster:
+    node_type: "Standard_DS3_v2"  # 4 cores, 14GB RAM
+    min_workers: 10
+    max_workers: 50
+    auto_scaling: true
+    
+  # Cost estimation (approximate)
+  estimated_cost:
+    databricks_dbu_hours: 5000
+    azure_data_transfer_gb: 256000

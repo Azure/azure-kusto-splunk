@@ -1,0 +1,72 @@
+# Enhanced Splunk to ADX Migration Requirements
+# Optimized for Azure Databricks and large-scale data processing
+
+# Core Spark and Data Processing
+pyspark>=3.4.0
+py4j>=0.10.9.5
+
+# Azure Data Explorer (Kusto) Integration
+azure-kusto-data>=4.0.0
+azure-kusto-ingest>=4.0.0
+
+# Splunk Integration
+splunk-sdk>=1.7.3
+
+# Data Processing and Analytics
+pandas>=2.0.0
+numpy>=1.24.0
+pyarrow>=12.0.0
+
+# Configuration Management
+PyYAML>=6.0
+pydantic>=2.0.0
+
+# Monitoring and Dashboard
+streamlit>=1.28.0
+plotly>=5.15.0
+psutil>=5.9.0
+
+# Logging and Error Handling
+loguru>=0.7.0
+retry>=0.9.2
+tenacity>=8.2.0
+
+# Progress Tracking and Utilities
+tqdm>=4.65.0
+rich>=13.0.0
+
+# Azure Authentication and Storage
+azure-identity>=1.13.0
+azure-storage-blob>=12.17.0
+azure-core>=1.28.0
+
+# HTTP and Networking
+requests>=2.31.0
+urllib3>=2.0.0
+
+# Date and Time Utilities
+python-dateutil>=2.8.0
+pytz>=2023.3
+
+# Async Processing
+asyncio-extras>=1.3.2
+concurrent-futures>=3.1.1
+
+# Development and Testing (optional)
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.7.0
+flake8>=6.0.0
+
+# Performance Monitoring
+memory-profiler>=0.60.0
+line-profiler>=4.1.0
+
+# Databricks-specific packages
+databricks-sdk>=0.8.0
+databricks-cli>=0.18.0
+
+# Additional utilities for large-scale processing
+joblib>=1.3.0
+cloudpickle>=2.2.0
+fsspec>=2023.6.0
